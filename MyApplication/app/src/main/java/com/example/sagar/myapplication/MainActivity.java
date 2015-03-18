@@ -13,12 +13,14 @@ import android.widget.Toast;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 
@@ -68,7 +70,9 @@ public class MainActivity extends ActionBarActivity {
 
             HttpClient httpClient=new DefaultHttpClient();
 
-            HttpPost httppost = new HttpPost("http://sk.dd:8083/rest/user/login");
+            HttpPost httppost = new HttpPost("http:/10.0.2.2/sk.dd:8083/user/login");
+            httppost.setHeader("Accept", "application/json");
+            httppost.setHeader("Content-type", "application/json");
 
 
             try {
@@ -85,24 +89,48 @@ public class MainActivity extends ActionBarActivity {
                 //add serialised JSON object into POST request
                 StringEntity se = new StringEntity(json.toString());
                 //set request content type
-                se.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+                se.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/hal+json"));
                 httppost.setEntity(se);
 
                 //send the POST request
                 HttpResponse response = httpClient.execute(httppost);
 
                 //read the response from Services endpoint
+                Log.e("info",response.toString());
+                System.out.println(response.toString());
                 String jsonResponse = EntityUtils.toString(response.getEntity());
 
                 JSONObject jsonObject = new JSONObject(jsonResponse);
                 //read the session information
-                session_name=jsonObject.getString("session_name");
-                session_id=jsonObject.getString("sessid");
+                session_name=jsonObject.getString("uuid");
+                //session_id=jsonObject.getString("uuid");
 
                 return 0;
 
             }catch (Exception e) {
                 Log.v("Error adding article", e.getMessage());
+            }
+
+            HttpGet httpget = new HttpGet("http:/10.0.2.2/sk.dd:8083/rest/session/token");
+            //set header to tell REST endpoint the request and response content types
+            httpget.setHeader("Accept", "application/json");
+            httpget.setHeader("Content-type", "application/json");
+
+            JSONArray json = new JSONArray();
+
+            try {
+
+                HttpResponse response = httpClient.execute(httpget);
+
+                //read the response and convert it into JSON array
+                json = new JSONArray(EntityUtils.toString(response.getEntity()));
+                //return the JSON array for post processing to onPostExecute function
+                session_id=json.getString(0);
+
+
+
+            }catch (Exception e) {
+                Log.v("Error adding article",e.getMessage());
             }
 
             return 0;
